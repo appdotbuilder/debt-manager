@@ -1,17 +1,29 @@
+import { db } from '../db';
+import { banksTable } from '../db/schema';
 import { type CreateBankInput, type Bank } from '../schema';
 
-export async function createBank(input: CreateBankInput): Promise<Bank> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new bank record with proper validation
-    // for loan types and billing dates. For Kartu Kredit, tanggal_cetak_billing is required.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createBank = async (input: CreateBankInput): Promise<Bank> => {
+  try {
+    // Insert bank record
+    const result = await db.insert(banksTable)
+      .values({
         nama_bank: input.nama_bank,
-        limit_pinjaman: input.limit_pinjaman,
+        limit_pinjaman: input.limit_pinjaman.toString(), // Convert number to string for numeric column
         jenis_pinjaman: input.jenis_pinjaman,
-        tanggal_cetak_billing: input.tanggal_cetak_billing,
-        tanggal_jatuh_tempo: input.tanggal_jatuh_tempo,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Bank);
-}
+        tanggal_cetak_billing: input.tanggal_cetak_billing, // Integer column - no conversion needed
+        tanggal_jatuh_tempo: input.tanggal_jatuh_tempo // Integer column - no conversion needed
+      })
+      .returning()
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    const bank = result[0];
+    return {
+      ...bank,
+      limit_pinjaman: parseFloat(bank.limit_pinjaman) // Convert string back to number
+    };
+  } catch (error) {
+    console.error('Bank creation failed:', error);
+    throw error;
+  }
+};
